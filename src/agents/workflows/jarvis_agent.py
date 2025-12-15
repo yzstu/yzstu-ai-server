@@ -1,11 +1,9 @@
 # 定义状态，继承MessagesState以自动管理消息历史
 import datetime
-from typing import Dict, Any, Optional
 
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.constants import END
-from langgraph.graph import MessagesState, StateGraph
+from langgraph.graph import StateGraph
 
 from src.agents.intent.jarvis import intent_recognition_node
 from src.agents.state import JarvisState
@@ -23,6 +21,7 @@ _LLM_TOOL_CALLING = ChatOpenAI(
     base_url=get_settings().llm.host,
     temperature=0  # 确定性输出，适合工具调用场景
 )
+
 
 # mcp_client = MultiServerMCPClient(
 #     {

@@ -1,12 +1,13 @@
+import logging
 from typing import Optional
 
-from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
-from mcp.server.fastmcp.prompts.base import UserMessage
 from pydantic import BaseModel, Field
 
 from ..state import JarvisState
 from ...config.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 _LLM_INTENT = ChatOpenAI(
     model=get_settings().llm.model.intent,
@@ -59,7 +60,6 @@ def create_intent_recognition_system():
 
         try:
             # 识别意图
-
             intent_result = intent_classifier.invoke([
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -67,7 +67,7 @@ def create_intent_recognition_system():
 
             # 提取实体
             entity_result = entity_extractor.invoke(user_prompt)
-
+            logger.info(msg="Success to intent classifier")
             return {
                 "user_input": user_prompt,
                 "primary_intent": intent_result.intent,
@@ -86,10 +86,12 @@ def create_intent_recognition_system():
             }
 
         except Exception as e:
+            logger.error(f"Error: {e}")
             # 失败时降级到基于规则的简单分类
             return fallback_intent_classification(state)
 
     def fallback_intent_classification(state: JarvisState) -> JarvisState:
+        logger.warning(msg="Fallback intent classification")
         """降级意图分类策略"""
         user_input = state["user_input"].lower()
 

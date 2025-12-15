@@ -1,14 +1,13 @@
 import os
 from enum import Enum
 from functools import lru_cache
-from pathlib import Path
 from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# 获取项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+from .constant import PROJECT_ROOT
+
 
 class Environment(str, Enum):
     DEVELOPMENT = "development"
