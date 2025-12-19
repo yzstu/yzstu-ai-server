@@ -7,6 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.config.constant import Environment, PROJECT_ROOT
 
+class MCPSettings(BaseSettings):
+    host: str = "http://localhost"
+    port: int = 8000
+
+    def get_sse_url(self) -> str:
+        return f"{self.host}:{self.port}/sse"
 
 class LLMSettings(BaseSettings):
     class ModelSettings(BaseSettings):
@@ -48,6 +54,8 @@ class Settings(BaseSettings):
 
     # llm相关配置
     llm: LLMSettings
+
+    mcp_life: MCPSettings
 
     model_config = SettingsConfigDict(
         # 按优先级加载环境文件

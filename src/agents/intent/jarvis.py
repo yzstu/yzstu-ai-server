@@ -4,6 +4,7 @@ from typing import Optional
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
+from ..prompts import jarvis_prompt
 from ..state import JarvisState
 from ...config.settings import get_settings
 
@@ -39,18 +40,7 @@ def create_intent_recognition_system():
     def recognize_intent(state: JarvisState) -> JarvisState:
         """核心意图识别节点"""
 
-        system_prompt = """你是一个智能家庭助手的意图分类器。你的任务是准确理解用户请求并分类。
-
-        可识别的意图类型包括：
-        - `weather_query`: 查询天气、气温、湿度、天气预报等
-        - `device_control`: 控制家居设备，如开灯、关空调、调节温度等
-        - `schedule_management`: 日程安排、提醒设置、定时任务等
-        - `information_query`: 查询家庭信息、设备状态、使用说明等
-        - `general_chat`: 问候、闲聊、自我介绍等一般对话
-        - `emergency_alert`: 安全警报、紧急情况处理
-        - `scene_activation`: 场景模式激活，如"影院模式"、"离家模式"等
-
-        请同时提取请求中的关键实体信息。如果信息不完整需要澄清，请设置requires_clarification为true。"""
+        system_prompt = jarvis_prompt.get_intent_recognition_system()
 
         user_prompt = f"用户输入: {state['user_input']}"
 
@@ -98,7 +88,7 @@ def create_intent_recognition_system():
         # 关键词映射
         intent_keywords = {
             "weather_query": ["天气", "气温", "温度", "下雨", "下雪", "weather"],
-            "device_control": ["打开", "关闭", "调", "开灯", "关灯", "启动", "停止"],
+            "smart_home": ["打开", "关闭", "调", "开灯", "关灯", "启动", "停止"],
             "schedule_management": ["提醒", "定时", "日程", "闹钟"],
             "general_chat": ["你好", "嗨", "你是谁", "帮助"],
         }

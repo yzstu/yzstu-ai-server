@@ -1,13 +1,17 @@
 # 定义状态，继承MessagesState以自动管理消息历史
 import datetime
+import logging
 
 from langchain_openai import ChatOpenAI
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 
 from src.agents.intent.jarvis import intent_recognition_node
+from src.agents.mcp_client import get_mcp_tools, life_mcp_manager
 from src.agents.state import JarvisState
 from src.config.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 _LLM_INTENT = ChatOpenAI(
     model=get_settings().llm.model.intent,
@@ -22,20 +26,6 @@ _LLM_TOOL_CALLING = ChatOpenAI(
     temperature=0  # 确定性输出，适合工具调用场景
 )
 
-
-# mcp_client = MultiServerMCPClient(
-#     {
-#         "math_server": {  # 给这个服务器起个名字
-#             "url": "http://localhost:8000/sse",  # SSE端点地址
-#             "transport": "sse",
-#         }
-#     })
-# # 获取MCP工具列表
-# tools = mcp_client.get_tools()
-# 创建能使用工具的智能体
-# agent = create_tool_calling_agent(_LLM_TOOL_CALLING, tools)
-
-
 def create_router():
     """创建动态路由系统"""
 
@@ -49,7 +39,6 @@ def create_router():
             return "clarification_workflow"
 
         routing_map = {
-            "weather_query": "weather_workflow",
             "device_control": "device_control_workflow",
             "schedule_management": "schedule_workflow",
             "information_query": "information_workflow",
@@ -67,10 +56,14 @@ def create_router():
 dynamic_router = create_router()
 
 
-def create_weather_workflow():
+def create_jarvis_workflow():
     """天气查询工作流（您之前实现的升级版）"""
 
-    def weather_workflow(state: JarvisState) -> JarvisState:
+    async def jarvis_workflow(state: JarvisState) -> JarvisState:
+        #【关键】动态获取并转换工具
+        tools = await get_mcp_tools(life_mcp_manager)
+        logger.info(f"🔧 Loaded {len(tools)} tools from MCP Server")
+
         # 使用之前实现的天气查询逻辑，但集成到新状态结构中
         city_name = state["extracted_entities"].get("city_name") or "东莞"
 
@@ -89,7 +82,7 @@ def create_weather_workflow():
             "assistant_response": f"🌤️ {city_name}当前天气：{weather_data['condition']}，温度{weather_data['temperature']}，湿度{weather_data['humidity']}。"
         }
 
-    return weather_workflow
+    return jarvis_workflow
 
 
 def create_device_control_workflow():
@@ -155,7 +148,7 @@ def create_smart_home_assistant():
 
     # 添加节点
     workflow.add_node("intent_recognition", intent_recognition_node)
-    workflow.add_node("weather_workflow", create_weather_workflow())
+    workflow.add_node("weather_workflow", create_jarvis_workflow())
     workflow.add_node("device_control_workflow", create_device_control_workflow())
     workflow.add_node("general_chat_workflow", create_general_chat_workflow())
     workflow.add_node("clarification_workflow", create_clarification_workflow())
@@ -188,7 +181,7 @@ def create_smart_home_assistant():
 smart_home_assistant = create_smart_home_assistant()
 
 
-async def test_assistant():
+async def assistant():
     """测试家庭助手的多功能能力"""
 
     test_cases = [
@@ -223,8 +216,7 @@ async def test_assistant():
             print(f"❌ 处理失败: {e}")
 
 
-# 运行测试
-if __name__ == "__main__":
-    import asyncio
 
-    asyncio.run(test_assistant())
+import asyncio
+
+asyncio.run(assistant())
